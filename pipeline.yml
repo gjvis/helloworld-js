@@ -1,0 +1,40 @@
+resources:
+- name: helloworld-js
+  type: git
+  source:
+    uri: https://github.com/gjvis/helloworld-js.git
+    branch: master
+
+jobs:
+- name: snyk
+  plan:
+  - get: helloworld-js
+    trigger: true
+  - task: npm-install
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source: {repository: node, tag: '6'}
+      inputs:
+      - name: helloworld-js
+      outputs:
+      - name: helloworld-js-with-modules
+      run:
+        dir: helloworld-js
+        path: bash
+        args: [-c, 'npm install && cp -r . ../helloworld-js-with-modules']
+  - task: snyk
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source: {repository: craigfurman/snyk}
+      inputs:
+      - name: helloworld-js-with-modules
+      run:
+        dir: helloworld-js-with-modules
+        path: snyk
+        args: [test]
+      params:
+        SNYK_TOKEN: {{snyk_token}}
